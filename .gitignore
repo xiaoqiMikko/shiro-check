@@ -1,0 +1,3 @@
+target/
+*.class
+tools/rules_dump.json

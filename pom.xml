@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <groupId>dev.mikko</groupId>
+  <artifactId>shiro-check</artifactId>
+  <version>0.1.0</version>
+  <packaging>jar</packaging>
+
+  <name>shiro-check</name>
+  <description>扫出你实际装的 Apache Shiro 模块与版本,逐条判定 26 个 CVE 中哪些真的落在你身上</description>
+
+  <!--
+    ⚠️ 本机 Maven 3.5.4(2018 年)卡死了插件版本 —— 见 docs/bets/5-spring-cloud-config.md:
+       compiler 3.13 / surefire 3.x / jar 3.4 全都要求 Maven >= 3.6.3,
+       而 Maven 自带的 compiler 3.1 不认 maven.compiler.release,会退回 source 5 编译失败。
+       能用的交集就是下面这三个版本号,别升。
+  -->
+  <properties>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <maven.compiler.release>17</maven.compiler.release>
+    <junit.version>5.10.2</junit.version>
+  </properties>
+
+  <dependencies>
+    <!-- 运行时零依赖;JUnit 仅测试期 -->
+    <dependency>
+      <groupId>org.junit.jupiter</groupId>
+      <artifactId>junit-jupiter</artifactId>
+      <version>${junit.version}</version>
+      <scope>test</scope>
+    </dependency>
+  </dependencies>
+
+  <build>
+    <finalName>shiro-check</finalName>
+    <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-compiler-plugin</artifactId>
+        <version>3.8.1</version>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-surefire-plugin</artifactId>
+        <version>2.22.2</version>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-jar-plugin</artifactId>
+        <version>3.2.0</version>
+        <configuration>
+          <archive>
+            <manifest>
+              <mainClass>dev.mikko.shirocheck.Main</mainClass>
+            </manifest>
+          </archive>
+        </configuration>
+      </plugin>
+    </plugins>
+  </build>
+</project>
