@@ -11,6 +11,15 @@
 
   <name>shiro-check</name>
   <description>扫出你实际装的 Apache Shiro 模块与版本,逐条判定 26 个 CVE 中哪些真的落在你身上</description>
+  <url>https://github.com/xiaoqiMikko/shiro-check</url>
+
+  <licenses>
+    <license>
+      <name>Apache License, Version 2.0</name>
+      <url>https://www.apache.org/licenses/LICENSE-2.0.txt</url>
+      <distribution>repo</distribution>
+    </license>
+  </licenses>
 
   <!--
     ⚠️ 本机 Maven 3.5.4(2018 年)卡死了插件版本 —— 见 docs/bets/5-spring-cloud-config.md:
