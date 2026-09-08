@@ -96,15 +96,52 @@ public final class Scanner {
         }
     }
 
+    /**
+     * ☠️ <b>ZipInputStream 对非 zip 内容不抛异常,只是一个条目都不给</b>(2026-09-08 实测)。
+     *
+     * <p>后果:损坏 / 加密 / 根本不是 zip 的 .jar 会静默走完扫描,得出「没扫到 shiro」——
+     * 用户会把它读成「我不受影响」。<b>「读不动」和「你是安全的」必须是两句话。</b>
+     *
+     * <p>🔴 这个坑第 10 注(log4j-check)实测记过并在那一注加了防线,但后续各注的扫描代码
+     * 是从别处复制来的,<b>防线没跟着传下来</b> —— 2026-09-08 第 24 注的真 jar 回测重新撞出它,
+     * 逐个实测发现 10 个已上线工具都有。空 zip({@code PK\05\06})合法,不算坏文件。
+     */
+    static boolean looksLikeZip(byte[] b) {
+        if (b == null || b.length < 4 || b[0] != 'P' || b[1] != 'K') return false;
+        int c = b[2], d = b[3];
+        return (c == 3 && d == 4) || (c == 5 && d == 6) || (c == 7 && d == 8);
+    }
+
+
+    /**
+     * 是不是一个<b>合法的空 zip</b> —— 整个文件就是一条 22 字节的 EOCD 记录。
+     *
+     * <p>🔴 判据不是「魔数像 zip」:一个 PK 03 04 开头但截断的文件魔数也是对的。
+     * 空 zip 是真的空,不该报错;截断的必须报。
+     */
+    static boolean isEmptyZip(byte[] b) {
+        return b != null && b.length == 22
+                && b[0] == 'P' && b[1] == 'K' && b[2] == 5 && b[3] == 6;
+    }
+
     private void scanArchive(String path, byte[] bytes, int depth) {
+        if (!looksLikeZip(bytes)) {
+            warnings.add("这个文件读不动,不是有效的 zip/jar:" + path
+                    + "(可能是截断、加密,或其实是个 HTML 错误页)"
+                    + " —— 🔴 **这不等于「里面没有 shiro」**");
+            return;
+        }
+
         List<byte[]> innerBytes = new ArrayList<>();
         List<String> innerPaths = new ArrayList<>();
         List<String> mvnCoords = new ArrayList<>();
         String mfVersion = null;
 
+        int entries = 0;
         try (ZipInputStream zis = new ZipInputStream(new ByteArrayInputStream(bytes))) {
             ZipEntry e;
             while ((e = zis.getNextEntry()) != null) {
+                entries++;
                 if (e.isDirectory()) {
                     continue;
                 }
@@ -129,6 +166,15 @@ public final class Scanner {
         } catch (IOException | IllegalArgumentException ex) {
             warnings.add("归档解析失败 " + path + ":" + ex.getMessage()
                     + "(🔴 这不等于「里面没有 Shiro」,请手工确认)");
+            return;
+        }
+
+        // 🔴 第二层防线:魔数对、也没抛异常,但一个条目都没解出来。
+        //    ☠️ 2026-09-08 实测:魔数校验只挡住一半 —— 一个 PK 03 04 开头但**内容截断**的文件
+        //    魔数是对的、ZipInputStream 也不抛异常,只是零条目。少了这一层它照样静默通过。
+        if (entries == 0 && !isEmptyZip(bytes)) {
+            warnings.add("这个文件魔数像 zip,但一个条目都解不出来(多半是截断或下载不全):" + path
+                    + " —— 🔴 **这不等于「里面没有 shiro」**");
             return;
         }
 
