@@ -28,6 +28,15 @@ import java.util.TreeSet;
  */
 public final class Main {
 
+    /**
+     * 有文件读不动 —— 「我没能读它」不许在自动化里等于「通过」。
+     *
+     * <p>2026-09-09 加。在此之前读不动只在输出里留一行提示,退出码照旧是 0,
+     * 而 CI 与脚本看的是退出码。**留痕给人看,退出码给机器看,两者缺一不可。**
+     * <p>发现了真问题时不降级成它:命中比读不动更要紧。
+     */
+    private static final int EXIT_UNREADABLE = 4;
+
     public static void main(String[] args) throws Exception {
         boolean utf8 = false;
         boolean showAll = false;
@@ -59,6 +68,10 @@ public final class Main {
             sc.scan(Path.of(t));
         }
         report(out, sc, showAll);
+        // 🔴 有文件读不动时,退出码不许停在 0 —— 见 EXIT_UNREADABLE 的注释。
+        if (sc.unreadableCount() > 0) {
+            System.exit(EXIT_UNREADABLE);
+        }
     }
 
     private static void usage(PrintStream out) {
